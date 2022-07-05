@@ -25,6 +25,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
 	"os"
@@ -84,7 +85,7 @@ func Requests() *Request {
 
 func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Request, error) {
 	req := Requests()
-	req.httpreq.Method = "POST"
+	req.httpreq.Method = strings.ToUpper(method)
 	//set default
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	// set params ?a=b&b=c
@@ -117,6 +118,10 @@ func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Reque
 		case Auth:
 			// a{username,password}
 			req.httpreq.SetBasicAuth(a[0], a[1])
+		case io.ReadCloser:
+			req.httpreq.Body = a
+		default:
+			panic("args not support!")
 		}
 	}
 
@@ -135,6 +140,10 @@ func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Reque
 	}
 	req.httpreq.URL = URL
 	return req.httpreq, nil
+}
+
+func NewRecorder() *httptest.ResponseRecorder {
+	return httptest.NewRecorder()
 }
 
 // Get ,req.Get
