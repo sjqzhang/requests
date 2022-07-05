@@ -82,6 +82,61 @@ func Requests() *Request {
 	return req
 }
 
+func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Request, error) {
+	req := Requests()
+	req.httpreq.Method = "POST"
+	//set default
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// set params ?a=b&b=c
+	//set Header
+	params := []map[string]string{}
+	datas := []map[string]string{} // POST
+	files := []map[string]string{} //post file
+
+	//reset Cookies,
+	//Client.Do can copy cookie from client.Jar to req.Header
+	delete(req.httpreq.Header, "Cookie")
+
+	for _, arg := range args {
+		switch a := arg.(type) {
+		// arg is Header , set to request header
+		case Header:
+
+			for k, v := range a {
+				req.Header.Set(k, v)
+			}
+			// arg is "GET" params
+			// ?title=website&id=1860&from=login
+		case Params:
+			params = append(params, a)
+
+		case Datas: //Post form data,packaged in body.
+			datas = append(datas, a)
+		case Files:
+			files = append(files, a)
+		case Auth:
+			// a{username,password}
+			req.httpreq.SetBasicAuth(a[0], a[1])
+		}
+	}
+
+	disturl, _ := buildURLParams(origurl, params...)
+
+	if len(files) > 0 {
+		req.buildFilesAndForms(files, datas)
+
+	} else {
+		Forms := req.buildForms(datas...)
+		req.setBodyBytes(Forms) // set forms to body
+	}
+	URL, err := url.Parse(disturl)
+	if err != nil {
+		return nil, err
+	}
+	req.httpreq.URL = URL
+	return req.httpreq, nil
+}
+
 // Get ,req.Get
 
 func Get(origurl string, args ...interface{}) (resp *Response, err error) {
@@ -142,12 +197,11 @@ func (req *Request) Get(origurl string, args ...interface{}) (resp *Response, er
 		return nil, err
 	}
 
-
 	resp = &Response{}
 	resp.R = res
 	resp.req = req
 
-    resp.Content()
+	resp.Content()
 	defer res.Body.Close()
 
 	resp.ResponseDebug()
@@ -232,9 +286,8 @@ func (req *Request) SetTimeout(n time.Duration) {
 	req.Client.Timeout = time.Duration(n * time.Second)
 }
 
-
-func (req *Request) Close( ) {
-    req.httpreq.Close = true
+func (req *Request) Close() {
+	req.httpreq.Close = true
 }
 
 func (req *Request) Proxy(proxyurl string) {
@@ -274,9 +327,9 @@ func (resp *Response) Content() []byte {
 
 	var err error
 
-    if len(resp.content) > 0{
-        return resp.content
-    }
+	if len(resp.content) > 0 {
+		return resp.content
+	}
 
 	var Body = resp.R.Body
 	if resp.R.Header.Get("Content-Encoding") == "gzip" && resp.req.Header.Get("Accept-Encoding") != "" {
@@ -413,13 +466,12 @@ func (req *Request) PostJson(origurl string, args ...interface{}) (resp *Respons
 		return nil, err
 	}
 
-
 	resp = &Response{}
 	resp.R = res
 	resp.req = req
 
-    resp.Content()
-    defer res.Body.Close()
+	resp.Content()
+	defer res.Body.Close()
 	resp.ResponseDebug()
 	return resp, nil
 }
@@ -428,7 +480,7 @@ func (req *Request) Post(origurl string, args ...interface{}) (resp *Response, e
 
 	req.httpreq.Method = "POST"
 
-    //set default
+	//set default
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// set params ?a=b&b=c
@@ -496,13 +548,12 @@ func (req *Request) Post(origurl string, args ...interface{}) (resp *Response, e
 		return nil, err
 	}
 
-
 	resp = &Response{}
 	resp.R = res
 	resp.req = req
 
-    resp.Content()
-    defer res.Body.Close()
+	resp.Content()
+	defer res.Body.Close()
 
 	resp.ResponseDebug()
 	return resp, nil
