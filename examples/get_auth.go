@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/asmcos/requests"
 	"fmt"
+	"github.com/sjqzhang/requests"
 )
 
 func main (){
