@@ -82,7 +82,7 @@ func Requests() *Request {
 	return req
 }
 
-func NewRequestForTest(method, origurl string, args ...interface{}) *http.Request {
+func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Request, error) {
 	req := Requests()
 	req.httpreq.Method = "POST"
 	//set default
@@ -134,7 +134,7 @@ func NewRequestForTest(method, origurl string, args ...interface{}) *http.Reques
 		return nil, err
 	}
 	req.httpreq.URL = URL
-	return req.httpreq
+	return req.httpreq, nil
 }
 
 // Get ,req.Get
