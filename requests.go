@@ -83,7 +83,7 @@ func Requests() *Request {
 	return req
 }
 
-func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Request, error) {
+func NewRequestForTest(method, origurl string, args ...interface{}) *http.Request {
 	req := Requests()
 	req.httpreq.Method = strings.ToUpper(method)
 	//set default
@@ -139,7 +139,7 @@ func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Reque
 		return nil, err
 	}
 	req.httpreq.URL = URL
-	return req.httpreq, nil
+	return req.httpreq
 }
 
 func NewRecorder() *httptest.ResponseRecorder {
