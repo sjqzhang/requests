@@ -25,6 +25,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
 	"os"
@@ -80,6 +81,10 @@ func Requests() *Request {
 	req.Client.Jar = jar
 
 	return req
+}
+
+func NewRecorder() *httptest.ResponseRecorder {
+	return httptest.NewRecorder()
 }
 
 func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Request, error) {
