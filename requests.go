@@ -50,6 +50,13 @@ type Response struct {
 	req     *Request
 }
 
+//type ContentType int
+//
+//const (
+//	ContentTypeFormEncoded ContentType = 0
+//	ContentTypeJsonEncoded ContentType = 1
+//)
+
 type Header map[string]string
 type Params map[string]string
 type Datas map[string]string // for post form
@@ -87,9 +94,10 @@ func NewRecorder() *httptest.ResponseRecorder {
 	return httptest.NewRecorder()
 }
 
+
 func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Request, error) {
 	req := Requests()
-	req.httpreq.Method = "POST"
+	req.httpreq.Method = method
 	//set default
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	// set params ?a=b&b=c
@@ -385,6 +393,14 @@ func (resp *Response) Json(v interface{}) error {
 	return json.Unmarshal(resp.content, v)
 }
 
+func (resp *Response) JsonToMap() (error, map[string]interface{}) {
+	if resp.content == nil {
+		resp.Content()
+	}
+	var data map[string]interface{}
+	return json.Unmarshal(resp.content, &data), data
+}
+
 func (resp *Response) Cookies() (cookies []*http.Cookie) {
 	httpreq := resp.req.httpreq
 	client := resp.req.Client
@@ -477,6 +493,89 @@ func (req *Request) PostJson(origurl string, args ...interface{}) (resp *Respons
 
 	resp.Content()
 	defer res.Body.Close()
+	resp.ResponseDebug()
+	return resp, nil
+}
+
+func (req *Request) Do(method string, origurl string, args ...interface{}) (resp *Response, err error) {
+
+	req.httpreq.Method = method
+
+	//set default
+	//req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// set params ?a=b&b=c
+	//set Header
+	params := []map[string]string{}
+	datas := []map[string]string{} // POST
+	files := []map[string]string{} //post file
+
+	//reset Cookies,
+	//Client.Do can copy cookie from client.Jar to req.Header
+	delete(req.httpreq.Header, "Cookie")
+
+	for _, arg := range args {
+		switch a := arg.(type) {
+		// arg is Header , set to request header
+		case Header:
+
+			for k, v := range a {
+				req.Header.Set(k, v)
+			}
+			// arg is "GET" params
+			// ?title=website&id=1860&from=login
+		case Params:
+			params = append(params, a)
+
+		case Datas: //Post form data,packaged in body.
+			datas = append(datas, a)
+		case Files:
+			files = append(files, a)
+		case Auth:
+			// a{username,password}
+			req.httpreq.SetBasicAuth(a[0], a[1])
+		}
+	}
+
+	disturl, _ := buildURLParams(origurl, params...)
+
+	if len(files) > 0 {
+		req.buildFilesAndForms(files, datas)
+
+	} else {
+		Forms := req.buildForms(datas...)
+		req.setBodyBytes(Forms) // set forms to body
+	}
+	//prepare to Do
+	URL, err := url.Parse(disturl)
+	if err != nil {
+		return nil, err
+	}
+	req.httpreq.URL = URL
+
+	req.ClientSetCookies()
+
+	req.RequestDebug()
+
+	res, err := req.Client.Do(req.httpreq)
+
+	// clear post param
+	req.httpreq.Body = nil
+	req.httpreq.GetBody = nil
+	req.httpreq.ContentLength = 0
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	resp = &Response{}
+	resp.R = res
+	resp.req = req
+
+	resp.Content()
+	defer res.Body.Close()
+
 	resp.ResponseDebug()
 	return resp, nil
 }
