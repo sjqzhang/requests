@@ -94,7 +94,6 @@ func NewRecorder() *httptest.ResponseRecorder {
 	return httptest.NewRecorder()
 }
 
-
 func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Request, error) {
 	req := Requests()
 	req.httpreq.Method = method
@@ -495,6 +494,41 @@ func (req *Request) PostJson(origurl string, args ...interface{}) (resp *Respons
 	defer res.Body.Close()
 	resp.ResponseDebug()
 	return resp, nil
+}
+
+/*
+	MethodGet     = "GET"
+	MethodHead    = "HEAD"
+	MethodPost    = "POST"
+	MethodPut     = "PUT"
+	MethodPatch   = "PATCH" // RFC 5789
+	MethodDelete  = "DELETE"
+	MethodConnect = "CONNECT"
+	MethodOptions = "OPTIONS"
+	MethodTrace   = "TRACE"
+*/
+
+func (req *Request) Head(origurl string, args ...interface{}) (resp *Response, err error) {
+	return req.Do(http.MethodHead, origurl, args...)
+}
+func (req *Request) Put(origurl string, args ...interface{}) (resp *Response, err error) {
+	return req.Do(http.MethodPut, origurl, args...)
+}
+func (req *Request) PutJson(origurl string, args ...interface{}) (resp *Response, err error) {
+	req.Header.Set("Content-Type", "application/json")
+	return req.Do(http.MethodPut, origurl, args...)
+}
+func (req *Request) Trace(origurl string, args ...interface{}) (resp *Response, err error) {
+	return req.Do(http.MethodTrace, origurl, args...)
+}
+func (req *Request) Delete(origurl string, args ...interface{}) (resp *Response, err error) {
+	return req.Do(http.MethodDelete, origurl, args...)
+}
+func (req *Request) Options(origurl string, args ...interface{}) (resp *Response, err error) {
+	return req.Do(http.MethodOptions, origurl, args...)
+}
+func (req *Request) Patch(origurl string, args ...interface{}) (resp *Response, err error) {
+	return req.Do(http.MethodPatch, origurl, args...)
 }
 
 func (req *Request) Do(method string, origurl string, args ...interface{}) (resp *Response, err error) {
