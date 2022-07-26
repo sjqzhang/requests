@@ -508,6 +508,36 @@ func (req *Request) PostJson(origurl string, args ...interface{}) (resp *Respons
 	MethodTrace   = "TRACE"
 */
 
+func Head(origurl string, args ...interface{}) (resp *Response, err error) {
+	req := Requests()
+	return req.Do(http.MethodHead, origurl, args...)
+}
+func Put(origurl string, args ...interface{}) (resp *Response, err error) {
+	req := Requests()
+	return req.Do(http.MethodPut, origurl, args...)
+}
+func PutJson(origurl string, args ...interface{}) (resp *Response, err error) {
+	req := Requests()
+	req.Header.Set("Content-Type", "application/json")
+	return req.Do(http.MethodPut, origurl, args...)
+}
+func Trace(origurl string, args ...interface{}) (resp *Response, err error) {
+	req := Requests()
+	return req.Do(http.MethodTrace, origurl, args...)
+}
+func Delete(origurl string, args ...interface{}) (resp *Response, err error) {
+	req := Requests()
+	return req.Do(http.MethodDelete, origurl, args...)
+}
+func Options(origurl string, args ...interface{}) (resp *Response, err error) {
+	req := Requests()
+	return req.Do(http.MethodOptions, origurl, args...)
+}
+func Patch(origurl string, args ...interface{}) (resp *Response, err error) {
+	req := Requests()
+	return req.Do(http.MethodPatch, origurl, args...)
+}
+
 func (req *Request) Head(origurl string, args ...interface{}) (resp *Response, err error) {
 	return req.Do(http.MethodHead, origurl, args...)
 }
