@@ -598,6 +598,13 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 		case Auth:
 			// a{username,password}
 			req.httpreq.SetBasicAuth(a[0], a[1])
+		default:
+			b := new(bytes.Buffer)
+			err = json.NewEncoder(b).Encode(a)
+			if err != nil {
+				return nil, err
+			}
+			req.setBodyRawBytes(ioutil.NopCloser(b))
 		}
 	}
 
@@ -607,8 +614,10 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 		req.buildFilesAndForms(files, datas)
 
 	} else {
-		Forms := req.buildForms(datas...)
-		req.setBodyBytes(Forms) // set forms to body
+		if len(datas)>0 {
+			Forms := req.buildForms(datas...)
+			req.setBodyBytes(Forms) // set forms to body
+		}
 	}
 	//prepare to Do
 	URL, err := url.Parse(disturl)
