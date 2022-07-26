@@ -590,7 +590,8 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 			// ?title=website&id=1860&from=login
 		case Params:
 			params = append(params, a)
-
+		case string:
+			req.setBodyRawBytes(ioutil.NopCloser(strings.NewReader(arg.(string))))
 		case Datas: //Post form data,packaged in body.
 			datas = append(datas, a)
 		case Files:
