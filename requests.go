@@ -392,6 +392,38 @@ func (resp *Response) Json(v interface{}) error {
 	return json.Unmarshal(resp.content, v)
 }
 
+func (resp *Response) JsonPretty() (string, error) {
+	var obj interface{}
+	if resp.content == nil {
+		resp.Content()
+	}
+	err := json.Unmarshal(resp.content, &obj)
+	if err != nil {
+		return "", err
+	} else {
+		bs, err := json.MarshalIndent(&obj, "", " ")
+		if err != nil {
+			return "", err
+		}
+		return string(bs), nil
+	}
+}
+
+func (resp *Response) PrintToConsole() {
+	body := string(resp.content)
+	body = strings.TrimSpace(body)
+	if strings.HasPrefix(body, "{") && strings.HasSuffix(body, "}") {
+		body, err := resp.JsonPretty()
+		if err != nil {
+			fmt.Println(body)
+		} else {
+			fmt.Println(body)
+		}
+	} else {
+		fmt.Println(string(resp.content))
+	}
+}
+
 func (resp *Response) JsonToMap() (map[string]interface{}, error) {
 	if resp.content == nil {
 		resp.Content()
