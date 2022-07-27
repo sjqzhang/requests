@@ -392,12 +392,12 @@ func (resp *Response) Json(v interface{}) error {
 	return json.Unmarshal(resp.content, v)
 }
 
-func (resp *Response) JsonToMap() (error, map[string]interface{}) {
+func (resp *Response) JsonToMap() (map[string]interface{}, error) {
 	if resp.content == nil {
 		resp.Content()
 	}
 	var data map[string]interface{}
-	return json.Unmarshal(resp.content, &data), data
+	return data, json.Unmarshal(resp.content, &data)
 }
 
 func (resp *Response) Cookies() (cookies []*http.Cookie) {
@@ -615,7 +615,7 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 		req.buildFilesAndForms(files, datas)
 
 	} else {
-		if len(datas)>0 {
+		if len(datas) > 0 {
 			Forms := req.buildForms(datas...)
 			req.setBodyBytes(Forms) // set forms to body
 		}
