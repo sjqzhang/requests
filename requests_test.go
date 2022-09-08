@@ -69,7 +69,7 @@ func TestGet(t *testing.T) {
 	// example 6 test gzip
 	println("Get example6")
 	req = Requests()
-	req.Debug = 1
+	req.Debug = true
 	resp, err = req.Get("https://httpbin.org/gzip")
 	if err == nil {
 		fmt.Println(resp.Text())
@@ -77,7 +77,7 @@ func TestGet(t *testing.T) {
 	// example 7 proxy and debug
 	println("Get example7")
 	req = Requests()
-	req.Debug = 1
+	req.Debug = true
 
 	// You need open the line
 	//req.Proxy("http://192.168.1.190:8888")
@@ -87,7 +87,7 @@ func TestGet(t *testing.T) {
 	//example 8 test  auto Cookies
 	println("Get example8")
 	req = Requests()
-	req.Debug = 1
+	req.Debug = true
 	// req.Proxy("http://192.168.1.190:8888")
 	req.Get("https://www.httpbin.org/cookies/set?freeform=1234")
 	req.Get("https://www.httpbin.org")
@@ -97,7 +97,7 @@ func TestGet(t *testing.T) {
 	// example 9 test AddCookie
 	println("Get example9")
 	req = Requests()
-	req.Debug = 1
+	req.Debug = true
 
 	cookie := &http.Cookie{}
 	cookie.Name = "anewcookie"
@@ -142,7 +142,7 @@ func TestPost(t *testing.T) {
 	// set post formdata
 	println("Post example1")
 	req := Requests()
-	req.Debug = 1
+	req.Debug = true
 
 	data := Datas{
 		"comments":  "ew",
@@ -162,7 +162,7 @@ func TestPost(t *testing.T) {
 	//example 2 upload files
 	println("Post example2")
 	req = Requests()
-	req.Debug = 1
+	req.Debug = true
 	path, _ := os.Getwd()
 	path1 := path + "/README.md"
 	path2 := path + "/docs/index.md"
@@ -196,7 +196,7 @@ func TestPost(t *testing.T) {
 func TestTimeout(t *testing.T) {
 	println("Timeout example1")
 	req := Requests()
-	req.Debug = 1
+	req.Debug = true
 
 	// 20 Second
 	req.SetTimeout(20)
@@ -209,7 +209,7 @@ func TestPostGet(t *testing.T) {
 	println("Test Post and Get")
 
 	client := Requests()
-	client.Debug = 1
+	client.Debug = true
 
 	resp, err := client.Post("https://www.httpbin.org/post", Datas{"abc": "123", "ddd": "789"})
 
@@ -247,24 +247,26 @@ func TestPostJson(t *testing.T) {
 
 	println("Test PostJson")
 
+	DEBUG=true
 	client := Requests()
-	client.Debug = 1
+	//client.Debug = 1
 
 	resp, err := client.PostJson("https://www.httpbin.org/post", dataStruct)
 	if err != nil {
 		t.Fatalf("post struct json error: %v", err)
 	}
-	fmt.Println(resp.Text())
+	//fmt.Println(resp.Text())
 
+	_=resp
 	resp, err = client.PostJson("https://www.httpbin.org/post", dataMap)
 	if err != nil {
 		t.Fatalf("post struct json error: %v", err)
 	}
-	fmt.Println(resp.Text())
+	//fmt.Println(resp.Text())
 
 	resp, err = client.PostJson("https://www.httpbin.org/post", dataJsonStr)
 	if err != nil {
 		t.Fatalf("post struct json error: %v", err)
 	}
-	fmt.Println(resp.Text())
+	//fmt.Println(resp.Text())
 }

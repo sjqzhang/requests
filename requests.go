@@ -35,11 +35,13 @@ import (
 
 var VERSION string = "0.8"
 
+var DEBUG bool = false
+
 type Request struct {
 	httpreq *http.Request
 	Header  *http.Header
 	Client  *http.Client
-	Debug   int
+	Debug   bool
 	Cookies []*http.Cookie
 }
 
@@ -87,6 +89,9 @@ func Requests() *Request {
 
 	req.Client.Jar = jar
 
+	if DEBUG {
+		req.Debug =DEBUG
+	}
 	return req
 }
 
@@ -251,7 +256,7 @@ func addQueryParams(parsedURL *url.URL, parsedQuery url.Values) string {
 
 func (req *Request) RequestDebug() {
 
-	if req.Debug != 1 {
+	if !req.Debug {
 		return
 	}
 
@@ -320,7 +325,7 @@ func (req *Request) Proxy(proxyurl string) {
 /**************/
 func (resp *Response) ResponseDebug() {
 
-	if resp.req.Debug != 1 {
+	if !resp.req.Debug{
 		return
 	}
 
