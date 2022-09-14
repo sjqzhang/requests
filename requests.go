@@ -36,6 +36,7 @@ import (
 var VERSION string = "0.8"
 
 var DEBUG bool = false
+var logger io.Writer
 
 type Request struct {
 	httpreq *http.Request
@@ -43,6 +44,7 @@ type Request struct {
 	Client  *http.Client
 	Debug   bool
 	Cookies []*http.Cookie
+	Logger  io.Writer
 }
 
 type Response struct {
@@ -82,6 +84,11 @@ func Requests() *Request {
 	req.httpreq.Header.Set("User-Agent", "Go-Requests "+VERSION)
 
 	req.Client = &http.Client{}
+	if logger == nil {
+		req.Logger = new(bytes.Buffer)
+	} else {
+		req.Logger = logger
+	}
 
 	// auto with Cookies
 	// cookiejar.New source code return jar, nil
@@ -90,9 +97,13 @@ func Requests() *Request {
 	req.Client.Jar = jar
 
 	if DEBUG {
-		req.Debug =DEBUG
+		req.Debug = DEBUG
 	}
 	return req
+}
+
+func SetLogger(log io.Writer) {
+	logger = log
 }
 
 func NewRecorder() *httptest.ResponseRecorder {
@@ -106,9 +117,9 @@ func NewRequestForTest(method, origurl string, args ...interface{}) (*http.Reque
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	// set params ?a=b&b=c
 	//set Header
-	params := []map[string]string{}
-	datas := []map[string]string{} // POST
-	files := []map[string]string{} //post file
+	var params []map[string]string
+	var datas []map[string]string // POST
+	var files []map[string]string //post file
 
 	//reset Cookies,
 	//Client.Do can copy cookie from client.Jar to req.Header
@@ -170,7 +181,7 @@ func (req *Request) Get(origurl string, args ...interface{}) (resp *Response, er
 
 	// set params ?a=b&b=c
 	//set Header
-	params := []map[string]string{}
+	var params []map[string]string
 
 	//reset Cookies,
 	//Client.Do can copy cookie from client.Jar to req.Header
@@ -256,6 +267,27 @@ func addQueryParams(parsedURL *url.URL, parsedQuery url.Values) string {
 
 func (req *Request) RequestDebug() {
 
+	buf := new(bytes.Buffer)
+	buf.WriteString(fmt.Sprintf("Method:%v\n", req.httpreq.Method))
+	buf.WriteString(fmt.Sprintf("URL:%v\n", req.httpreq.URL))
+	buf.WriteString(fmt.Sprintf("Header:%v\n", req.httpreq.Header))
+
+	if v, ok := req.httpreq.Header["Content-Type"]; ok {
+		if strings.Contains(strings.ToLower(v[0]), "multipart/form-data") {
+			//buf.WriteString(fmt.Sprintf("Body:%v\n", req.httpreq.MultipartForm))
+		} else {
+			var body bytes.Buffer
+			_, err := io.Copy(&body, req.httpreq.Body)
+			if err != nil {
+				fmt.Println(err)
+			}
+			req.httpreq.Body = ioutil.NopCloser(bytes.NewBuffer(body.Bytes()))
+			buf.WriteString(fmt.Sprintf("Body:%v\n", body.String()))
+		}
+	}
+	if req.Logger != nil {
+		buf.WriteTo(req.Logger)
+	}
 	if !req.Debug {
 		return
 	}
@@ -324,8 +356,13 @@ func (req *Request) Proxy(proxyurl string) {
 
 /**************/
 func (resp *Response) ResponseDebug() {
+	buf := new(bytes.Buffer)
+	buf.WriteString(fmt.Sprintf("Status:%v\n", resp.R.Status))
+	buf.WriteString(fmt.Sprintf("StatusCode:%v\n", resp.R.StatusCode))
+	buf.WriteString(fmt.Sprintf("Header:%v\n", resp.R.Header))
+	buf.WriteTo(resp.req.Logger)
 
-	if !resp.req.Debug{
+	if !resp.req.Debug {
 		return
 	}
 
@@ -700,9 +737,9 @@ func (req *Request) Post(origurl string, args ...interface{}) (resp *Response, e
 
 	// set params ?a=b&b=c
 	//set Header
-	params := []map[string]string{}
-	datas := []map[string]string{} // POST
-	files := []map[string]string{} //post file
+	var params []map[string]string
+	var datas []map[string]string // POST
+	var files []map[string]string //post file
 
 	//reset Cookies,
 	//Client.Do can copy cookie from client.Jar to req.Header
