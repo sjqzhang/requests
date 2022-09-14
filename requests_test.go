@@ -247,7 +247,6 @@ func TestPostJson(t *testing.T) {
 
 	println("Test PostJson")
 
-	DEBUG=true
 	client := Requests()
 	//client.Debug = 1
 
