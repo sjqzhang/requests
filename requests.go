@@ -85,7 +85,11 @@ func Requests() *Request {
 
 	req.Client = &http.Client{}
 	if logger == nil {
-		req.Logger = new(bytes.Buffer)
+		if DEBUG {
+			req.Logger = os.Stdout
+		} else {
+			req.Logger = new(bytes.Buffer)
+		}
 	} else {
 		req.Logger = logger
 	}
@@ -210,6 +214,7 @@ func (req *Request) Get(origurl string, args ...interface{}) (resp *Response, er
 	//prepare to Do
 	URL, err := url.Parse(disturl)
 	if err != nil {
+		req.writeLog(err)
 		return nil, err
 	}
 	req.httpreq.URL = URL
@@ -221,7 +226,7 @@ func (req *Request) Get(origurl string, args ...interface{}) (resp *Response, er
 	res, err := req.Client.Do(req.httpreq)
 
 	if err != nil {
-		fmt.Println(err)
+		req.writeLog(err)
 		return nil, err
 	}
 
@@ -266,46 +271,18 @@ func addQueryParams(parsedURL *url.URL, parsedQuery url.Values) string {
 }
 
 func (req *Request) RequestDebug() {
-
 	buf := new(bytes.Buffer)
-	buf.WriteString("-------------------Begin---------------------\n")
-	buf.WriteString(fmt.Sprintf("Method:%v\n", req.httpreq.Method))
-	buf.WriteString(fmt.Sprintf("URL:%v\n", req.httpreq.URL))
-	buf.WriteString(fmt.Sprintf("Header:%v\n", req.httpreq.Header))
-	if v, ok := req.httpreq.Header["Content-Type"]; ok {
-		if strings.Contains(strings.ToLower(v[0]), "multipart/form-data") {
-			//buf.WriteString(fmt.Sprintf("Body:%v\n", req.httpreq.MultipartForm))
-		} else {
-			if req.httpreq.Body != nil {
-				var body bytes.Buffer
-				_, err := io.Copy(&body, req.httpreq.Body)
-				if err != nil {
-					fmt.Println(err)
-				}
-				req.httpreq.Body = ioutil.NopCloser(bytes.NewBuffer(body.Bytes()))
-				buf.WriteString(fmt.Sprintf("Body:%v\n", body.String()))
-			}
-		}
-	}
-	if req.Logger != nil {
-		buf.WriteTo(req.Logger)
-	}
-	if !req.Debug {
-		return
-	}
-
-	fmt.Println("===========Go RequestDebug ============")
-
+	buf.WriteString(fmt.Sprintf("\n------------------- Request Info  ---------------------\n"))
+	defer buf.WriteTo(req.Logger)
 	message, err := httputil.DumpRequestOut(req.httpreq, false)
 	if err != nil {
+		buf.WriteString(fmt.Sprintf("ERROR:%v", err))
 		return
 	}
-	fmt.Println(string(message))
-
+	buf.Write(message)
 	if len(req.Client.Jar.Cookies(req.httpreq.URL)) > 0 {
-		fmt.Println("Cookies:")
 		for _, cookie := range req.Client.Jar.Cookies(req.httpreq.URL) {
-			fmt.Println(cookie)
+			buf.WriteString(fmt.Sprintf("%v=%v;", cookie.Name, cookie.Value))
 		}
 	}
 }
@@ -359,25 +336,16 @@ func (req *Request) Proxy(proxyurl string) {
 /**************/
 func (resp *Response) ResponseDebug() {
 	buf := new(bytes.Buffer)
-	buf.WriteString(fmt.Sprintf("Status:%v\n", resp.R.Status))
-	buf.WriteString(fmt.Sprintf("StatusCode:%v\n", resp.R.StatusCode))
-	buf.WriteString(fmt.Sprintf("Header:%v\n", resp.R.Header))
-	buf.WriteString("-------------------End---------------------\n")
-	buf.WriteTo(resp.req.Logger)
-
-	if !resp.req.Debug {
-		return
-	}
-
-	fmt.Println("===========Go ResponseDebug ============")
-
+	defer buf.WriteTo(resp.req.Logger)
 	message, err := httputil.DumpResponse(resp.R, false)
 	if err != nil {
+		buf.WriteString(fmt.Sprintf("ERROR:%v\n", err))
+		buf.WriteString(fmt.Sprintf("\n------------------- Request End  ---------------------\n"))
 		return
 	}
-
-	fmt.Println(string(message))
-
+	buf.WriteString(fmt.Sprintf("\n------------------- Response Info  ---------------------\n"))
+	buf.Write(message)
+	buf.WriteString(fmt.Sprintf("\n------------------- Request End  ---------------------\n"))
 }
 
 func (resp *Response) Content() []byte {
@@ -460,7 +428,8 @@ func (resp *Response) PrintToConsole() {
 	if strings.HasPrefix(body, "{") && strings.HasSuffix(body, "}") {
 		body, err := resp.JsonPretty()
 		if err != nil {
-			fmt.Println(body)
+			resp.req.writeLog(err)
+			resp.req.writeLog(body)
 		} else {
 			fmt.Println(body)
 		}
@@ -543,6 +512,7 @@ func (req *Request) PostJson(origurl string, args ...interface{}) (resp *Respons
 	//prepare to Do
 	URL, err := url.Parse(origurl)
 	if err != nil {
+		req.writeLog(err)
 		return nil, err
 	}
 	req.httpreq.URL = URL
@@ -559,7 +529,7 @@ func (req *Request) PostJson(origurl string, args ...interface{}) (resp *Respons
 	req.httpreq.ContentLength = 0
 
 	if err != nil {
-		fmt.Println(err)
+		req.writeLog(err)
 		return nil, err
 	}
 
@@ -700,6 +670,7 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 	//prepare to Do
 	URL, err := url.Parse(disturl)
 	if err != nil {
+		req.writeLog(err)
 		return nil, err
 	}
 	req.httpreq.URL = URL
@@ -716,7 +687,7 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 	req.httpreq.ContentLength = 0
 
 	if err != nil {
-		fmt.Println(err)
+		req.writeLog(err)
 		return nil, err
 	}
 
@@ -729,6 +700,12 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 
 	resp.ResponseDebug()
 	return resp, nil
+}
+
+func (req *Request) writeLog(obj interface{}) {
+	if req.Logger != nil {
+		req.Logger.Write([]byte(fmt.Sprintf("%v", obj)))
+	}
 }
 
 func (req *Request) Post(origurl string, args ...interface{}) (resp *Response, err error) {
@@ -783,6 +760,7 @@ func (req *Request) Post(origurl string, args ...interface{}) (resp *Response, e
 	//prepare to Do
 	URL, err := url.Parse(disturl)
 	if err != nil {
+		req.writeLog(err)
 		return nil, err
 	}
 	req.httpreq.URL = URL
@@ -799,7 +777,7 @@ func (req *Request) Post(origurl string, args ...interface{}) (resp *Response, e
 	req.httpreq.ContentLength = 0
 
 	if err != nil {
-		fmt.Println(err)
+		req.writeLog(err)
 		return nil, err
 	}
 
