@@ -268,21 +268,23 @@ func addQueryParams(parsedURL *url.URL, parsedQuery url.Values) string {
 func (req *Request) RequestDebug() {
 
 	buf := new(bytes.Buffer)
+	buf.WriteString("-------------------Begin---------------------\n")
 	buf.WriteString(fmt.Sprintf("Method:%v\n", req.httpreq.Method))
 	buf.WriteString(fmt.Sprintf("URL:%v\n", req.httpreq.URL))
 	buf.WriteString(fmt.Sprintf("Header:%v\n", req.httpreq.Header))
-
 	if v, ok := req.httpreq.Header["Content-Type"]; ok {
 		if strings.Contains(strings.ToLower(v[0]), "multipart/form-data") {
 			//buf.WriteString(fmt.Sprintf("Body:%v\n", req.httpreq.MultipartForm))
 		} else {
-			var body bytes.Buffer
-			_, err := io.Copy(&body, req.httpreq.Body)
-			if err != nil {
-				fmt.Println(err)
+			if req.httpreq.Body != nil {
+				var body bytes.Buffer
+				_, err := io.Copy(&body, req.httpreq.Body)
+				if err != nil {
+					fmt.Println(err)
+				}
+				req.httpreq.Body = ioutil.NopCloser(bytes.NewBuffer(body.Bytes()))
+				buf.WriteString(fmt.Sprintf("Body:%v\n", body.String()))
 			}
-			req.httpreq.Body = ioutil.NopCloser(bytes.NewBuffer(body.Bytes()))
-			buf.WriteString(fmt.Sprintf("Body:%v\n", body.String()))
 		}
 	}
 	if req.Logger != nil {
@@ -360,6 +362,7 @@ func (resp *Response) ResponseDebug() {
 	buf.WriteString(fmt.Sprintf("Status:%v\n", resp.R.Status))
 	buf.WriteString(fmt.Sprintf("StatusCode:%v\n", resp.R.StatusCode))
 	buf.WriteString(fmt.Sprintf("Header:%v\n", resp.R.Header))
+	buf.WriteString("-------------------End---------------------\n")
 	buf.WriteTo(resp.req.Logger)
 
 	if !resp.req.Debug {
