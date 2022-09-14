@@ -1,6 +1,7 @@
 package requests
 
 import (
+	"context"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"net/http"
@@ -220,6 +221,21 @@ func TestPostGet(t *testing.T) {
 		fmt.Println(err)
 	}
 	fmt.Println(resp.Text())
+
+}
+
+func TestAddFilter(t *testing.T) {
+
+
+	println("Test Add Filter")
+	client := Requests()
+	client.Debug = true
+
+
+	client.AddFilter(func(ctx context.Context, req *http.Request, resp *http.Response) {
+ 			fmt.Println("Filter1 asdfasdfasdfasd",resp.ContentLength)
+	})
+	client.Get("https://www.httpbin.org/get")
 
 }
 
