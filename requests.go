@@ -35,7 +35,7 @@ import (
 
 var VERSION string = "0.8"
 
-var DEBUG bool = false
+var Debug bool = false
 var logger io.Writer
 
 type Request struct {
@@ -85,7 +85,7 @@ func Requests() *Request {
 
 	req.Client = &http.Client{}
 	if logger == nil {
-		if DEBUG {
+		if Debug {
 			req.Logger = os.Stdout
 		} else {
 			req.Logger = new(bytes.Buffer)
@@ -100,8 +100,8 @@ func Requests() *Request {
 
 	req.Client.Jar = jar
 
-	if DEBUG {
-		req.Debug = DEBUG
+	if Debug {
+		req.Debug = Debug
 	}
 	return req
 }
