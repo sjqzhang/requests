@@ -578,13 +578,18 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (*Res
 			b := new(bytes.Buffer)
 			err = json.NewEncoder(b).Encode(a)
 			if err != nil {
+				req.writeLog(err)
 				return nil, err
 			}
 			req.setBodyRawBytes(ioutil.NopCloser(b))
 		}
 	}
-
-	disturl, _ := buildURLParams(origurl, params...)
+	var disturl string
+	disturl, err = buildURLParams(origurl, params...)
+	if err != nil {
+		req.writeLog(err)
+		return nil, err
+	}
 
 	if len(files) > 0 {
 		req.buildFilesAndForms(files, datas)
@@ -624,6 +629,11 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (*Res
 
 	res, err = req.Client.Do(req.HttpRequest)
 
+	if err != nil {
+		req.writeLog(err)
+		return nil, err
+	}
+
 	if len(req.Callbacks) > 0 && res.Body != nil {
 		var resBuffer bytes.Buffer
 		var respBody io.ReadCloser
@@ -643,11 +653,6 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (*Res
 	req.HttpRequest.Body = nil
 	req.HttpRequest.GetBody = nil
 	req.HttpRequest.ContentLength = 0
-
-	if err != nil {
-		req.writeLog(err)
-		return nil, err
-	}
 
 	resp = Response{}
 	resp.R = res

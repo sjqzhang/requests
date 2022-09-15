@@ -233,9 +233,13 @@ func TestRegisterCallback(t *testing.T) {
 		fmt.Println("Filter1 asdfasdfasdfasd", resp.ContentLength, err)
 		var buf bytes.Buffer
 		buf.ReadFrom(resp.Body)
-		fmt.Println(buf.String())
+		fmt.Println(ctx.Value("test"))
 	})
 	client := Requests()
+	ctx:=context.Background()
+	ctx=context.WithValue(ctx,"test","test")
+	client.WithContext(ctx)
+
 	client.Debug = true
 
 	//client.RegisterCallback()
