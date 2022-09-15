@@ -1,6 +1,7 @@
 package requests
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
@@ -227,15 +228,19 @@ func TestPostGet(t *testing.T) {
 func TestAddFilter(t *testing.T) {
 
 
-	println("Test Add Filter")
+	println("Test Add Callback")
 	client := Requests()
 	client.Debug = true
 
 
-	client.AddFilter(func(ctx context.Context, req *http.Request, resp *http.Response) {
- 			fmt.Println("Filter1 asdfasdfasdfasd",resp.ContentLength)
+	client.RegisterCallback(func(ctx context.Context, req *http.Request, resp *http.Response,err error) {
+ 			fmt.Println("Filter1 asdfasdfasdfasd",resp.ContentLength,err)
+ 			var buf bytes.Buffer
+ 			buf.ReadFrom(resp.Body)
+ 			fmt.Println(buf.String())
 	})
-	client.Get("https://www.httpbin.org/get")
+	client.Get("https://www.baidu.com")
+	//fmt.Println(resp.Text())
 
 }
 

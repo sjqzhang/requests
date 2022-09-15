@@ -40,13 +40,15 @@ var Debug bool = false
 var logger io.Writer
 
 type Settings struct {
-	Debug bool
+	Debug     bool
+	Callbacks []Callback
 }
 
-type Filter func(ctx context.Context, req *http.Request, resp *http.Response)
+type Callback func(ctx context.Context, req *http.Request, resp *http.Response, err error)
 
 var settings = Settings{
-	Debug: false,
+	Debug:     false,
+	Callbacks: []Callback{},
 }
 
 type Request struct {
@@ -57,7 +59,7 @@ type Request struct {
 	Cookies     []*http.Cookie
 	Logger      io.Writer
 	Settings    Settings
-	Filters     []Filter
+	Callbacks   []Callback
 }
 
 type Response struct {
@@ -114,6 +116,10 @@ func Requests() *Request {
 
 	req.Client.Jar = jar
 
+	if len(settings.Callbacks) > 0 {
+		req.Callbacks = settings.Callbacks
+	}
+
 	if Debug {
 		req.Debug = Debug
 	}
@@ -122,6 +128,10 @@ func Requests() *Request {
 
 func SetLogger(log io.Writer) {
 	logger = log
+}
+
+func RegisterCallback(filters ...Callback) {
+	settings.Callbacks = append(settings.Callbacks, filters...)
 }
 
 func NewRecorder() *httptest.ResponseRecorder {
@@ -238,8 +248,8 @@ func addQueryParams(parsedURL *url.URL, parsedQuery url.Values) string {
 	return strings.Replace(parsedURL.String(), "?"+parsedURL.RawQuery, "", -1)
 }
 
-func (req *Request) AddFilter(filters ...Filter) {
-	req.Filters = append(req.Filters, filters...)
+func (req *Request) RegisterCallback(filters ...Callback) {
+	req.Callbacks = append(req.Callbacks, filters...)
 }
 
 func (req *Request) RequestDebug() {
@@ -518,8 +528,16 @@ func (req *Request) Patch(origurl string, args ...interface{}) (resp *Response, 
 	return req.Do(http.MethodPatch, origurl, args...)
 }
 
-func (req *Request) Do(method string, origurl string, args ...interface{}) (resp *Response, err error) {
+func (req *Request) Do(method string, origurl string, args ...interface{}) (*Response, error) {
 
+	var err error
+	var res *http.Response
+	var resp Response
+	defer func() {
+		for _, cb := range req.Callbacks {
+			cb(req.HttpRequest.Context(), req.HttpRequest, res, err)
+		}
+	}()
 	req.HttpRequest.Method = method
 
 	//set default
@@ -549,7 +567,7 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 			params = append(params, a)
 		case string:
 			req.setBodyRawBytes(ioutil.NopCloser(strings.NewReader(arg.(string))))
-		case Datas: //Post form data,packaged in body.
+		case Datas: //Post form data,packaged in reqBody.
 			datas = append(datas, a)
 		case Files:
 			files = append(files, a)
@@ -574,11 +592,12 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 	} else {
 		if len(datas) > 0 {
 			Forms := req.buildForms(datas...)
-			req.setBodyBytes(Forms) // set forms to body
+			req.setBodyBytes(Forms) // set forms to reqBody
 		}
 	}
 	//prepare to Do
-	URL, err := url.Parse(disturl)
+	var URL *url.URL
+	URL, err = url.Parse(disturl)
 	if err != nil {
 		req.writeLog(err)
 		return nil, err
@@ -588,12 +607,36 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 	req.ClientSetCookies()
 
 	req.RequestDebug()
-	var res *http.Response
+	var reqBuffer bytes.Buffer
+
+	var reqBody io.ReadCloser
+
+	if len(req.Callbacks) > 0 && req.HttpRequest.Body != nil {
+
+		_, err = reqBuffer.ReadFrom(req.HttpRequest.Body)
+		if err != nil {
+			return nil, err
+		}
+		req.HttpRequest.Body = ioutil.NopCloser(&reqBuffer)
+		reqBody = io.NopCloser(bytes.NewReader(reqBuffer.Bytes()))
+
+	}
 
 	res, err = req.Client.Do(req.HttpRequest)
 
-	for _, filter := range req.Filters {
-		filter(req.HttpRequest.Context(), req.HttpRequest, res)
+	if len(req.Callbacks) > 0 && res.Body != nil {
+		var resBuffer bytes.Buffer
+		var respBody io.ReadCloser
+		_, err = resBuffer.ReadFrom(res.Body)
+		if err != nil {
+			return nil, err
+		}
+		res.Body = ioutil.NopCloser(&resBuffer)
+		respBody = io.NopCloser(bytes.NewReader(resBuffer.Bytes()))
+		defer func() {
+			res.Body = respBody
+		}()
+		req.HttpRequest.Body = reqBody
 	}
 
 	// clear post param
@@ -606,7 +649,7 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 		return nil, err
 	}
 
-	resp = &Response{}
+	resp = Response{}
 	resp.R = res
 	resp.req = req
 
@@ -614,7 +657,7 @@ func (req *Request) Do(method string, origurl string, args ...interface{}) (resp
 	defer res.Body.Close()
 
 	resp.ResponseDebug()
-	return resp, nil
+	return &resp, nil
 }
 
 func (req *Request) writeLog(obj interface{}) {
