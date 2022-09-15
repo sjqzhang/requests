@@ -128,15 +128,15 @@ func TestGet(t *testing.T) {
 
 func TestClose(t *testing.T) {
 
-    req := Requests()
-    fmt.Println("Start 1000 times get test...")
-    for i:=0;i<1000;i++{
-        _,err := req.Post("http://localhost:1337/requests",Datas{"SrcIp":"4312"})
-        fmt.Printf("\r%d %v",i,err)
-        req.Close()
-    }
+	req := Requests()
+	fmt.Println("Start 1000 times get test...")
+	for i := 0; i < 1000; i++ {
+		_, err := req.Post("http://localhost:1337/requests", Datas{"SrcIp": "4312"})
+		fmt.Printf("\r%d %v", i, err)
+		req.Close()
+	}
 
-    fmt.Println("1000 times get test end.")
+	fmt.Println("1000 times get test end.")
 }
 func TestPost(t *testing.T) {
 
@@ -225,20 +225,20 @@ func TestPostGet(t *testing.T) {
 
 }
 
-func TestAddFilter(t *testing.T) {
-
+func TestRegisterCallback(t *testing.T) {
 
 	println("Test Add Callback")
+
+	RegisterCallback(func(ctx context.Context, req *http.Request, resp *http.Response, err error) {
+		fmt.Println("Filter1 asdfasdfasdfasd", resp.ContentLength, err)
+		var buf bytes.Buffer
+		buf.ReadFrom(resp.Body)
+		fmt.Println(buf.String())
+	})
 	client := Requests()
 	client.Debug = true
 
-
-	client.RegisterCallback(func(ctx context.Context, req *http.Request, resp *http.Response,err error) {
- 			fmt.Println("Filter1 asdfasdfasdfasd",resp.ContentLength,err)
- 			var buf bytes.Buffer
- 			buf.ReadFrom(resp.Body)
- 			fmt.Println(buf.String())
-	})
+	//client.RegisterCallback()
 	client.Get("https://www.baidu.com")
 	//fmt.Println(resp.Text())
 
@@ -277,7 +277,7 @@ func TestPostJson(t *testing.T) {
 	}
 	//fmt.Println(resp.Text())
 
-	_=resp
+	_ = resp
 	resp, err = client.PostJson("https://www.httpbin.org/post", dataMap)
 	if err != nil {
 		t.Fatalf("post struct json error: %v", err)

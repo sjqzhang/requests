@@ -130,8 +130,8 @@ func SetLogger(log io.Writer) {
 	logger = log
 }
 
-func RegisterCallback(filters ...Callback) {
-	settings.Callbacks = append(settings.Callbacks, filters...)
+func RegisterCallback(callbacks ...Callback) {
+	settings.Callbacks = append(settings.Callbacks, callbacks...)
 }
 
 func NewRecorder() *httptest.ResponseRecorder {
@@ -248,8 +248,8 @@ func addQueryParams(parsedURL *url.URL, parsedQuery url.Values) string {
 	return strings.Replace(parsedURL.String(), "?"+parsedURL.RawQuery, "", -1)
 }
 
-func (req *Request) RegisterCallback(filters ...Callback) {
-	req.Callbacks = append(req.Callbacks, filters...)
+func (req *Request) RegisterCallback(callbacks ...Callback) {
+	req.Callbacks = append(req.Callbacks, callbacks...)
 }
 
 func (req *Request) RequestDebug() {
