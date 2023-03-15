@@ -456,6 +456,22 @@ func PostJson(origurl string, args ...interface{}) (resp *Response, err error) {
 	return resp, err
 }
 
+
+func GetJson(origurl string, args ...interface{}) (resp *Response, err error) {
+	req := Requests()
+
+	// call request Get
+	resp, err = req.GetJson(origurl, args...)
+	return resp, err
+}
+
+
+
+func (req *Request) GetJson(origurl string, args ...interface{}) (resp *Response, err error) {
+	req.Header.Set("Content-Type", "application/json")
+	return req.Do("GET", origurl, args...)
+}
+
 // POST requests
 
 func (req *Request) PostJson(origurl string, args ...interface{}) (resp *Response, err error) {
